@@ -1,4 +1,4 @@
-# NOTE: Path.copy requires Python 3.14 or higher! TODO: Make it so that that isn't a problem!
+# NOTE: shutil.copy requires Python 3.8 or higher, otherwise the project runs Python 3.6.
 #TODO: Implement config file/interactive settings getting
 #TODO: Do error handling on copy/move operations
 
@@ -82,7 +82,12 @@ def write_dict_to_json(dictionary: dict, file_path: Path):
 	except PermissionError:
 		print("[ERROR] Permission error: '" + str(file_path) + "', please make sure you have write access! Cannot continue!")
 		exit(1)
+	except:
+		print("[ERROR] Unknown error while writing", str(file_path))
+		exit(1)
+
 	json.dump(dictionary, file, indent=4)
+	file.close()
 
 def move_audio_files(files: dict):
 	if resource_pack_output_java_folder.exists:
@@ -108,11 +113,11 @@ def move_audio_files(files: dict):
 		icon_path = files[i]["icon_path"]
 
 		print("[*] Moving", audio_path.name + "...")
-		Path(audio_path).rename(records_dir / f"{format_pack_filename_string(audio_path.stem)}.ogg")
+		shutil.move(Path(audio_path), records_dir / f"{format_pack_filename_string(audio_path.stem)}.ogg")
 		if icon_path == DEFAULT_ICON_PATH:
-			Path(DEFAULT_ICON_PATH).copy(icons_dir / f"{format_pack_filename_string(icon_path.stem)}.png")
+			shutil.copy(Path(DEFAULT_ICON_PATH), icons_dir / f"{format_pack_filename_string(icon_path.stem)}.png")
 		else:
-			Path(icon_path).rename(icons_dir / f"{format_pack_filename_string(icon_path.stem)}.png")
+			shutil.move(Path(icon_path), icons_dir / f"{format_pack_filename_string(icon_path.stem)}.png")
 
 
 
