@@ -10,12 +10,6 @@ class ResourcePackFormat(Enum):
 	JAVA = 1
 	BEDROCK = 2
 
-class Colors(Enum):
-	RED = "\033[91m"
-	GREEN = "\033[92m"
-	YELLOW = "\033[93m"
-	RESET = "\033[0m"
-
 PACK_FORMATTER_REPLACEMENTS = {
 	"1": "one",
 	"2": "two",
@@ -31,8 +25,8 @@ PACK_FORMATTER_REPLACEMENTS = {
 
 #Paths for various things
 track_input_path: Path = 				Path("input")
-resource_pack_output_java_folder = 		"resource_pack"
-resource_pack_output_bedrock_path = 	"resource_pack_bedrock"
+resource_pack_output_java_folder = 		Path("resource_pack")
+resource_pack_output_bedrock_path = 	Path("resource_pack_bedrock")
 datapack_output_path: Path =			Path("data_pack")
 
 #Settings (TODO: Implement config file/interactive settings getting)
@@ -43,9 +37,9 @@ resource_pack_description : str = "Adds music discs to the game."
 pack_id : str = "discodiscs"
 
 def find_track_icon(track_path: Path):
-	target_icon_path: str = str(track_path.parent) + '/' + track_path.stem + ".png"
+	target_icon_path: Path = track_path.parent / f"{track_path.stem}.png"
 
-	if Path.exists(Path(target_icon_path)):
+	if Path.exists(target_icon_path):
 		return Path(target_icon_path)
 	else:
 		print("Could not find icon for " + str(track_path) + ", using default icon.")
@@ -76,54 +70,75 @@ def format_pack_filename_string(string: str):
 	return re.sub(r'[^a-zA-Z]', '', str(string).translate(str.maketrans(PACK_FORMATTER_REPLACEMENTS))).lower()
 
 def write_dict_to_json(dictionary: dict, file_path: Path):
-	file = Path(file_path).open(mode="w", encoding='utf-8')
+	try:
+		file = file_path.open(mode="w", encoding='utf-8')
+	except FileNotFoundError:
+		print("[ERROR] FileNotFound error: '" + str(file_path) + f"', skipping. WARNING: Your pack might be broken!")
+		return
+	except PermissionError:
+		print("[ERROR] Permission error: '" + str(file_path) + "', please make sure you ")
+		return
 	json.dump(dictionary, file, indent=4)
 
 def move_audio_files(files: dict):
-	if Path(resource_pack_output_java_folder).exists:
-		print(f"{Colors.RED}Resource pack output folder exists! {Colors.RESET}To continue, the folder must be removed. Continue? (y/N) ")
+	if resource_pack_output_java_folder.exists:
+		print(f"Resource pack output folder ({str(resource_pack_output_java_folder)}) exists! To continue, the folder must be removed. Continue? (y/N) ")
 		yn = str(input())
 		if yn == "y":
-			print(f"{Colors.YELLOW}Removing Java resource pack folder...{Colors.RESET}")
-			shutil.rmtree(Path(resource_pack_output_java_folder))
-			Path(resource_pack_output_java_folder).mkdir(parents=True, exist_ok=True)
+			print("Removing Java resource pack folder...")
+			shutil.rmtree(resource_pack_output_java_folder)
+			resource_pack_output_java_folder.mkdir(parents=True, exist_ok=True)
 		else:
-			print(f"{Colors.RED}Cannot continue. Exiting.{Colors.RESET}")
+			print("Cannot continue. Exiting.")
 			exit(0)
 
 
-	records_dir = resource_pack_output_java_folder + "/assets/" + pack_id + "/sounds/records/"
-	icons_dir = resource_pack_output_java_folder + "/assets/" + pack_id + "/textures/item/"
+	records_dir = resource_pack_output_java_folder / "assets" / pack_id / "sounds/records/"
+	icons_dir = resource_pack_output_java_folder / "assets" / pack_id / "textures/item/"
 
-	Path(records_dir).mkdir(parents=True, exist_ok=True)
-	Path(icons_dir).mkdir(parents=True, exist_ok=True)
+	records_dir.mkdir(parents=True, exist_ok=True)
+	icons_dir.mkdir(parents=True, exist_ok=True)
 
 	for i in files:
 		audio_path = files[i]["audio_path"]
 		icon_path = files[i]["icon_path"]
 
-		print("[*] Working on", audio_path.name + "...")
-		Path(audio_path).rename(Path(records_dir + "/" + format_pack_filename_string(audio_path.stem) + ".ogg"))
-		Path(icon_path).rename(Path(icons_dir + "/" + format_pack_filename_string(icon_path.stem) + ".png"))
+		print("[*] Moving", audio_path.name + "...")
+		Path(audio_path).rename(records_dir / f"{format_pack_filename_string(audio_path.stem)}.ogg")
+		if icon_path == DEFAULT_ICON_PATH:
+			Path(DEFAULT_ICON_PATH).copy(icons_dir / f"{format_pack_filename_string(icon_path.stem)}.png")
+		else:
+			Path(icon_path).rename(icons_dir / f"{format_pack_filename_string(icon_path.stem)}.png")
 
 
 
 audio_files: dict = list_audio_files(track_input_path)
+
+if not audio_files:
+	print(f"Could not find any audio files in {track_input_path.absolute()}! Are they all in .ogg OPUS audio format?")
+
 move_audio_files(audio_files)
 
+print("[>] Writing pack.mcmeta...")
 pack_mcmeta = {"pack": {"pack_format": java_resource_pack_format,
                         "description": resource_pack_description}}  # Generate pack.mcmeta
-write_dict_to_json(pack_mcmeta, Path(resource_pack_output_java_folder + "/pack.mcmeta"))
+write_dict_to_json(pack_mcmeta, resource_pack_output_java_folder / "pack.mcmeta")
 
 sounds_json = {}
 
 for disc in audio_files:
-	print("Processing disc", audio_files[disc]["id_string"])
-	sounds_json["music_disc." + audio_files[disc]["id_string"]] = {"sounds": [{"name": pack_id + ":records/" + audio_files[disc]["id_string"],
-																   "stream": True}]} # formats sounds.json as music_disc.id_string = {"sounds"
+	disc_id = audio_files[disc]["id_string"]
+	print("[*] Processing disc", disc_id)
 
-write_dict_to_json(sounds_json, Path(resource_pack_output_java_folder + "/assets/" + pack_id + "/sounds.json"))
+	sounds_json["music_disc." + disc_id] = {"sounds": [{"name": pack_id + ":records/" + disc_id,
+														"stream": True}]} # formats sounds.json as music_disc.id_string = {"sounds"
+	item_json = {"parent": "item/generated",
+				 "textures": {
+					 "layer0": pack_id + ":item/" + disc_id
+				 }}
+	write_dict_to_json(item_json, resource_pack_output_java_folder / "models" / f"music_disc_{disc_id}.json")
 
+write_dict_to_json(sounds_json, resource_pack_output_java_folder / "assets" / pack_id / "sounds.json")
 
 
 
