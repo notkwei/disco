@@ -1,3 +1,7 @@
+# NOTE: Path.copy requires Python 3.14 or higher! TODO: Make it so that that isn't a problem!
+#TODO: Implement config file/interactive settings getting
+#TODO: Do error handling on copy/move operations
+
 import shutil
 from enum import Enum
 import json
@@ -29,10 +33,10 @@ resource_pack_output_java_folder = 		Path("resource_pack")
 resource_pack_output_bedrock_path = 	Path("resource_pack_bedrock")
 datapack_output_path: Path =			Path("data_pack")
 
-#Settings (TODO: Implement config file/interactive settings getting)
+#Settings ()
 generate_bedrock_path: bool = False
-java_resource_pack_format: float = 88.0
-datapack_format: float = 107.2
+java_resource_pack_format: float = 88.0 # Microsoft, why. Just. WHY. IT IS A VERSION NUMBER. MAKE IT A NUMBER. NOT A FLOAT.
+datapack_format: float = 107.2	# *throws up*
 resource_pack_description : str = "Adds music discs to the game."
 pack_id : str = "discodiscs"
 
@@ -73,11 +77,11 @@ def write_dict_to_json(dictionary: dict, file_path: Path):
 	try:
 		file = file_path.open(mode="w", encoding='utf-8')
 	except FileNotFoundError:
-		print("[ERROR] FileNotFound error: '" + str(file_path) + f"', skipping. WARNING: Your pack might be broken!")
-		return
+		print("[ERROR] FileNotFound error: '" + str(file_path) + f"'! Cannot continue!")
+		exit(1)
 	except PermissionError:
-		print("[ERROR] Permission error: '" + str(file_path) + "', please make sure you ")
-		return
+		print("[ERROR] Permission error: '" + str(file_path) + "', please make sure you have write access! Cannot continue!")
+		exit(1)
 	json.dump(dictionary, file, indent=4)
 
 def move_audio_files(files: dict):
@@ -117,12 +121,14 @@ audio_files: dict = list_audio_files(track_input_path)
 if not audio_files:
 	print(f"Could not find any audio files in {track_input_path.absolute()}! Are they all in .ogg OPUS audio format?")
 
-move_audio_files(audio_files)
+move_audio_files(audio_files) # Also creates audio-related resource pack directories. Might move that elsewhere later.
 
 print("[>] Writing pack.mcmeta...")
 pack_mcmeta = {"pack": {"pack_format": java_resource_pack_format,
                         "description": resource_pack_description}}  # Generate pack.mcmeta
 write_dict_to_json(pack_mcmeta, resource_pack_output_java_folder / "pack.mcmeta")
+
+Path(resource_pack_output_java_folder / "assets" / pack_id / "models" / "item").mkdir(parents=True, exist_ok=True)
 
 sounds_json = {}
 
@@ -136,7 +142,7 @@ for disc in audio_files:
 				 "textures": {
 					 "layer0": pack_id + ":item/" + disc_id
 				 }}
-	write_dict_to_json(item_json, resource_pack_output_java_folder / "models" / f"music_disc_{disc_id}.json")
+	write_dict_to_json(item_json, resource_pack_output_java_folder / "assets" / pack_id / "models" / "item" / f"music_disc_{disc_id}.json")
 
 write_dict_to_json(sounds_json, resource_pack_output_java_folder / "assets" / pack_id / "sounds.json")
 
