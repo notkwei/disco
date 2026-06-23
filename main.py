@@ -5,10 +5,10 @@
 from enum import Enum
 import json
 from pathlib import Path
+import questionary
 
 
 from generator.utils import PackConfig, format_string
-import textual
 from rich import print, prompt
 
 print(r"""	'########::'####::'######:::'######:::'#######::'########::'####::'######:::'######:::'######::
