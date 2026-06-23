@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 from dataclasses import dataclass
 import shutil
@@ -24,29 +25,27 @@ class PackConfig:
 
 	pack_id: str
 	pack_description: str
-	output_folder: Path
+	output_path: Path
 	disc_item_string: str
-
-	audio_files: dict
 
 def format_string(string: str):
 	return re.sub(r'[^a-zA-Z]', '', str(string).translate(str.maketrans(STRING_FORMATTER_REPLACEMENTS))).lower()
 
 def move_audio(files: dict, config: PackConfig):
-	if config.output_folder.exists:
-		print(f"Resource pack output folder ({str(config.output_folder)}) exists! To continue, the folder must be removed. Continue? (y/N) ")
+	if config.output_path.exists:
+		print(f"Resource pack output path ({str(config.output_path)}) exists! To continue, the path must be removed. Continue? (y/N) ")
 		yn = str(input())
 		if yn == "y":
-			print("Removing Java resource pack folder...")
-			shutil.rmtree(config.output_folder)
-			config.output_folder.mkdir(parents=True, exist_ok=True)
+			print("Removing Java resource pack path...")
+			shutil.rmtree(config.output_path)
+			config.output_path.mkdir(parents=True, exist_ok=True)
 		else:
 			print("Cannot continue. Exiting.")
 			exit(0)
 
 
-	records_dir = config.output_folder / "assets" / config.pack_id / "sounds/records/"
-	icons_dir = config.output_folder / "assets" / config.pack_id / "textures/item/"
+	records_dir = config.output_path / "assets" / config.pack_id / "sounds/records/"
+	icons_dir = config.output_path / "assets" / config.pack_id / "textures/item/"
 
 	records_dir.mkdir(parents=True, exist_ok=True)
 	icons_dir.mkdir(parents=True, exist_ok=True)
@@ -62,3 +61,14 @@ def move_audio(files: dict, config: PackConfig):
 		else:
 			shutil.move(Path(icon_path), icons_dir / f"{format_string(icon_path.stem)}.png")
 
+def write_json(dictionary: dict, file_path: Path):
+	try:
+		with open(file_path, "w", encoding='utf-8') as file:
+			json.dump(dictionary, file, indent=4)
+
+	except FileNotFoundError:
+		print("[ERROR]: '" + str(file_path) + "', parent path does not exist! Cannot continue!")
+		exit(1)
+	except PermissionError:
+		print("[ERROR] Permission error: '" + str(file_path) + "', please make sure you have write access! Cannot continue!")
+		exit(1)
