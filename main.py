@@ -58,7 +58,7 @@ def list_audio_files(path: Path):
 					if icon.exists():
 						icon_path = icon
 					else:
-						print("Could not find icon for " + str(item) + ", using default icon.")
+						print("Could not find icon for ", item, ", using default icon.")
 						icon_path = DEFAULT_ICON_PATH
 
 					audio_file_list[item.stem] = 				{}
@@ -97,7 +97,7 @@ if not input_path.exists():
 audio_files = list_audio_files(input_path)
 
 if not audio_files:
-	print("[bold red]Could not find any audio files in " + str(input_path.absolute()) + ". Cannot continue.[/bold red]")
+	print("[bold red]Could not find any audio files in", input_path.absolute(), ". Cannot continue.[/bold red]")
 	exit(1)
 
 
