@@ -1,22 +1,15 @@
 from generator.utils import write_json, move_audio, PackConfig
 from pathlib import Path
+from rich.console import Console
+
+console = Console()
+
 
 PACK_FORMAT = 88.0
-"""
-* move_audio implementation
 
-rp description
-rp output folder
-pack id
-music disc item string
-output java folder
+def generate_rp(audio_files: dict, config: PackConfig): # meta holds pack metadata, like config.pack_id and the output path.
+	move_audio(audio_files, config, Path(f"assets/{config.output_path}/sounds/records"), Path(f"assets/{config.output_path}/sounds/records")) # Also creates audio-related resource pack directories. Might move that elsewhere later.
 
-
-"""
-def generate(audio_files: dict, config: PackConfig): # meta holds pack metadata, like config.pack_id and the output path.
-	move_audio(audio_files, config) # Also creates audio-related resource pack directories. Might move that elsewhere later.
-
-	print("[>] Writing pack.mcmeta...")
 	pack_mcmeta = {"pack": {"pack_format": PACK_FORMAT,
 							"description": config.pack_description}}  # Generate pack.mcmeta
 	write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
@@ -35,7 +28,7 @@ def generate(audio_files: dict, config: PackConfig): # meta holds pack metadata,
 	for disc in audio_files:
 		disc_id = audio_files[disc]["id_string"]
 		disc_custom_model_id = int(audio_files[disc]["custom_model_data"])
-		print("[*] Processing disc", disc_id)
+		console.print("[RP] Processing disc", disc_id, style="grey50")
 
 		sounds_json["music_disc." + disc_id] = {"sounds": [{"name": config.pack_id + ":records/" + disc_id,
 															"stream": True}]}  # formats sounds.json as music_disc.id_string = {"sounds"...}

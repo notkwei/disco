@@ -4,25 +4,30 @@
 
 from enum import Enum
 import json
+import shutil
 from pathlib import Path
 import questionary
+from rich.console import Console
 
 
 from generator.utils import PackConfig, format_string
-from rich import print, prompt
+from rich import print, color
 
-print(r"""	'########::'####::'######:::'######:::'#######::'########::'####::'######:::'######:::'######::
-			##.... ##:. ##::'##... ##:'##... ##:'##.... ##: ##.... ##:. ##::'##... ##:'##... ##:'##... ##:
-			##:::: ##:: ##:: ##:::..:: ##:::..:: ##:::: ##: ##:::: ##:: ##:: ##:::..:: ##:::..:: ##:::..::
-			##:::: ##:: ##::. ######:: ##::::::: ##:::: ##: ##:::: ##:: ##::. ######:: ##:::::::. ######::
-			##:::: ##:: ##:::..... ##: ##::::::: ##:::: ##: ##:::: ##:: ##:::..... ##: ##::::::::..... ##:
-			##:::: ##:: ##::'##::: ##: ##::: ##: ##:::: ##: ##:::: ##:: ##::'##::: ##: ##::: ##:'##::: ##:
-			########::'####:. ######::. ######::. #######:: ########::'####:. ######::. ######::. ######::
-			........:::....:::......::::......::::.......:::........:::....:::......::::......::::......:::""") # ooo pretty
+console = Console()
+console.print("[white]" +
+r"""'########::'####::'######:::'######:::'#######::'########::'####::'######:::'######:::'######::
+ ##.... ##:. ##::'##... ##:'##... ##:'##.... ##: ##.... ##:. ##::'##... ##:'##... ##:'##... ##:
+ ##:::: ##:: ##:: ##:::..:: ##:::..:: ##:::: ##: ##:::: ##:: ##:: ##:::..:: ##:::..:: ##:::..::
+ ##:::: ##:: ##::. ######:: ##::::::: ##:::: ##: ##:::: ##:: ##::. ######:: ##:::::::. ######::
+ ##:::: ##:: ##:::..... ##: ##::::::: ##:::: ##: ##:::: ##:: ##:::..... ##: ##::::::::..... ##:
+ ##:::: ##:: ##::'##::: ##: ##::: ##: ##:::: ##: ##:::: ##:: ##::'##::: ##: ##::: ##:'##::: ##:
+ ########::'####:. ######::. ######::. #######:: ########::'####:. ######::. ######::. ######::
+........:::....:::......::::......::::.......:::........:::....:::......::::......::::......:::""" + "[/white]") # ooo pretty
 
 
 
 DEFAULT_ICON_PATH = Path("resources/default_disc_icon.png")
+DEFAULT_PACK_ICON_PATH = Path("resources/default_pack_icon.png")
 
 class ResourcePackFormat(Enum):
 	JAVA = 1
@@ -31,19 +36,31 @@ class ResourcePackFormat(Enum):
 
 
 #Paths for various things
-track_input_path: Path = 				Path("input")
-resource_pack_output_java_folder = 		Path("resource_pack")
-resource_pack_output_bedrock_path = 	Path("resource_pack_bedrock")
-datapack_output_path: Path =			Path("data_pack")
+DEFAULT_INPUT_PATH: Path = 				Path("input")
+DEFAULT_JAVA_RP_PATH = 		Path("resource_pack")
+DEFAULT_BEDROCK_RP_PATH = 	Path("resource_pack_bedrock")
+DEFAULT_JAVA_DP_PATH: Path =			Path("data_pack")
+
+DEFAULT_JAVA_RP_FORMAT: float = 88.0
+DEFAULT_JAVA_DP_FORMAT: float = 107.2
+
+DEFAULT_MUSIC_DISC_ITEM_STRING: str = "music_disc_wait"
 
 #Settings ()
 generate_bedrock_path: bool = False
-music_disc_item_string: str = "music_disc_wait"
 java_resource_pack_format: float = 88.0 # Microsoft, why. Just. WHY. IT IS A VERSION NUMBER. MAKE IT A NUMBER. NOT A FLOAT.
 datapack_format: float = 107.2	# *throws up*
 resource_pack_description : str = "Adds music discs to the game."
 pack_id : str = "discodiscs"
 
+
+def ask_to_clear_path(path: Path = Path("")):
+	consent: bool = questionary.confirm("Path exists. Continue? All contents will be permanently deleted. ").ask()
+	if not consent:
+		console.print("Path", path, "exists. Cannot continue.", style="bold red")
+		exit(1)
+	else:
+		return True
 
 
 def list_audio_files(path: Path):
@@ -58,7 +75,7 @@ def list_audio_files(path: Path):
 					if icon.exists():
 						icon_path = icon
 					else:
-						print("Could not find icon for ", item, ", using default icon.")
+						console.print("Could not find icon for ", item, ", using default icon.", style="gray50")
 						icon_path = DEFAULT_ICON_PATH
 
 					audio_file_list[item.stem] = 				{}
@@ -69,66 +86,100 @@ def list_audio_files(path: Path):
 					i += 1
 		
 			else:
-				print("Skipping non-file " + item.name)
+				console.print("Skipping non-file " + item.name)
 		return audio_file_list
 	else:
 		raise FileNotFoundError("Invalid input path: " + str(path))
 
+# control flow:
+# action
 
 
+console.print("[bold green]Welcome to Disco![/bold green]")
 
-print("[bold green]Welcome to Disco![/bold green]")
+pack_types: list = []
+while not pack_types:
+	pack_types = questionary.checkbox(
+		"Select pack type(s) to generate.",
+		choices=["Java (Resource Pack + Datapack)", "Bedrock (Resource Pack Only, Requires Geyser + Java Datapack)"]).ask()
+	if not pack_types:
+		console.print("[red]Use space to select an item.[/red]")
 
-choice = prompt.Prompt.ask(
-    "Please select a pack format.",
-    choices=["Java Resource Pack", "Java Data Pack", "Bedrock Resource Pack"],
-    default="Java Resource Pack",
-)
+input_path: Path = Path(questionary.path("Select input directory", "input").ask())
 
-output_path = prompt.Prompt.ask("Enter a valid output path (relative).")
-if not Path(output_path).exists(): print("[yellow]Could not find output path, will create it[/yellow]")
+with console.status("Searching input directory...", spinner="dots"):
+	audio_files = list_audio_files(input_path)
 
-input_path = Path(prompt.Prompt.ask("Enter a valid input path (relative)."))
+	if not audio_files:
+		console.print("Could not find any audio files in", input_path.absolute(), ". Cannot continue.", style="bold red")
+		exit(1)
 
-if not input_path.exists():
-	print("[bold red]Invalid input path! Cannot continue.[/bold red]")
-	exit(1)
+use_advanced_settings = questionary.confirm("Set extended settings?", False).ask()
 
-audio_files = list_audio_files(input_path)
+if use_advanced_settings:
+	console.rule("[bold yellow]Extended Settings[/bold yellow]")
 
-if not audio_files:
-	print("[bold red]Could not find any audio files in", input_path.absolute(), ". Cannot continue.[/bold red]")
-	exit(1)
+	advanced_settings = questionary.form(
+		pack_id = questionary.text("Enter pack namespace string (lowercase letters only)", "discodiscs"),
+		pack_description = questionary.text("Enter pack description", "Adds custom music discs"),
+		pack_icon_path = questionary.path("Enter pack icon path"),
+		disc_item_string = questionary.text("Enter disc item name to use for custom model data"),
+	).ask()
+else:
+	advanced_settings = {"pack_id": "discodiscs",
+						 "pack_description": "Adds custom music discs",
+						 "pack_icon_path": DEFAULT_ICON_PATH,
+						 "disc_item_string": DEFAULT_MUSIC_DISC_ITEM_STRING}
 
+if "Java (Resource Pack + Datapack)" in pack_types:
+	if use_advanced_settings:
+		rp_format_id = questionary.text("Enter Java Resource Pack format number", str(DEFAULT_JAVA_RP_FORMAT)).ask()
+		dp_format_id = questionary.text("Enter Datapack format number", str(DEFAULT_JAVA_DP_FORMAT)).ask()
 
-if choice == "Java Resource Pack":
-	from generator.javarp.v88_0 import *
+		pack_id = format_string(advanced_settings["pack_id"]) or pack_id
 
-	config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH, pack_id=pack_id,
-	                                pack_description=resource_pack_description, output_path=Path(output_path),
-	                                disc_item_string=music_disc_item_string)
-	generate(audio_files, config)
+	console.rule("[bold green]Java Settings[/bold green]")
 
+	# TODO: Implement version selection for different pack versions. Skip if use_advanced_settings because we already asked the user.
 
+	rp_output_path: Path = Path(questionary.text("Enter Java Resource Pack output directory", "resource_pack").ask())
+	if rp_output_path.exists() and ask_to_clear_path(rp_output_path):
+		shutil.rmtree(rp_output_path)
 
+	dp_output_path: Path = Path(questionary.text("Enter Java Datapack output directory", "datapack").ask())
+	if dp_output_path.exists() and ask_to_clear_path(dp_output_path):
+		shutil.rmtree(dp_output_path)
 
+	resource_pack_description = str(advanced_settings["pack_description"])
+	music_disc_item_string = advanced_settings["disc_item_string"]
+	java_resource_pack_format = float(advanced_settings["rp_format_id"])
+	datapack_format = float(advanced_settings["dp_format_id"])
 
+	pack_icon = Path(advanced_settings["pack_icon_path"])
+	if not pack_icon.exists():
+		console.print("Cannot find custom icon path, using default icon.", style="bold yellow")
+		pack_icon = DEFAULT_PACK_ICON_PATH
 
+	with console.status("Building selected packs...", spinner="dots"):
 
+		rp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH, pack_id=pack_id,
+											pack_description=resource_pack_description,
+											output_path=Path(rp_output_path) or DEFAULT_JAVA_RP_PATH,
+											disc_item_string=music_disc_item_string)
 
-# audio_files: dict = list_audio_files(track_input_path)
-#
-# if audio_files:
-# 	generate_java_resource_pack(audio_files)
-# else:
-# 	print(f"Could not find any audio files in {track_input_path.absolute()}! Are they all in .ogg OPUS audio format?")
+		dp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH,
+										   pack_id=pack_id,
+										   pack_description=resource_pack_description,
+										   output_path=Path(dp_output_path) or DEFAULT_JAVA_RP_PATH,
+										   disc_item_string=music_disc_item_string,
+										   pack_format=datapack_format,
+										   pack_icon=DEFAULT_ICON_PATH)
 
+		from generator.javarp.v88_0 import generate_rp
+		from generator.javadp.v107_1 import generate_dp
 
+		generate_rp(audio_files, rp_config)
+		generate_dp(audio_files, dp_config)
 
-
-#assets/disco/sounds/records/discname.ogg
-
-
-
-
-
+if "Bedrock (Resource Pack + Datapack)" in pack_types:
+	rp_output_path: Path = Path(questionary.text("Enter Bedrock Resource Pack Output Directory", "resource_pack").ask())

@@ -21,7 +21,10 @@ STRING_FORMATTER_REPLACEMENTS = {
 
 @dataclass
 class PackConfig:
+	pack_icon: Path
 	default_icon: Path
+
+	pack_format: float
 
 	pack_id: str
 	pack_description: str
@@ -31,21 +34,14 @@ class PackConfig:
 def format_string(string: str):
 	return re.sub(r'[^a-zA-Z]', '', str(string).translate(str.maketrans(STRING_FORMATTER_REPLACEMENTS))).lower()
 
-def move_audio(files: dict, config: PackConfig):
+def move_audio(files: dict, config: PackConfig, audio_output_path: Path, icon_output_path: Path):
 	if config.output_path.exists:
-		print(f"Resource pack output path ({str(config.output_path)}) exists! To continue, the path must be removed. Continue? (y/N) ")
-		yn = str(input())
-		if yn == "y":
-			print("Removing Java resource pack path...")
-			shutil.rmtree(config.output_path)
-			config.output_path.mkdir(parents=True, exist_ok=True)
-		else:
-			print("Cannot continue. Exiting.")
-			exit(0)
+		print(f"Resource pack output path ({str(config.output_path)}) exists! Cannot continue.")
 
 
-	records_dir = config.output_path / "assets" / config.pack_id / "sounds/records/"
-	icons_dir = config.output_path / "assets" / config.pack_id / "textures/item/"
+
+	records_dir = config.output_path / audio_output_path
+	icons_dir = config.output_path / icon_output_path
 
 	records_dir.mkdir(parents=True, exist_ok=True)
 	icons_dir.mkdir(parents=True, exist_ok=True)
