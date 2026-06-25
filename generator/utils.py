@@ -30,12 +30,14 @@ class PackConfig:
 	pack_description: str
 	output_path: Path
 	disc_item_string: str
+	jukebox_comparator_output: int
+	audio_range: float
 
 def format_string(string: str):
 	return re.sub(r'[^a-zA-Z]', '', str(string).translate(str.maketrans(STRING_FORMATTER_REPLACEMENTS))).lower()
 
 def move_audio(files: dict, config: PackConfig, audio_output_path: Path, icon_output_path: Path):
-	if config.output_path.exists:
+	if config.output_path.exists():
 		print(f"Resource pack output path ({str(config.output_path)}) exists! Cannot continue.")
 
 
