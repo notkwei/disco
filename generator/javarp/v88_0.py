@@ -18,8 +18,9 @@ def generate_rp(audio_files: dict, config: PackConfig): # meta holds pack metada
 	Path(config.output_path / "assets" / config.pack_id / "models" / "item").mkdir(parents=True, exist_ok=True)
 	Path(config.output_path / "assets/minecraft/models/item").mkdir(parents=True, exist_ok=True)
 
-	pack_mcmeta = {"pack": {"pack_format": PACK_FORMAT,
-	                        "description": config.pack_description}}  # Generate pack.mcmeta
+	pack_mcmeta = {"pack": {"description": config.pack_description,
+							"min_format": [config.pack_format, 0],
+							"max_format": [config.pack_format, 0]}}  # Generate pack.mcmeta
 	write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
 
 	move_audio(audio_files, config, audio_output_dir, icon_output_dir)

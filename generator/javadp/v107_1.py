@@ -18,8 +18,9 @@ def generate_dp(audio_files: dict, config: PackConfig):
     Path(functions_dir / "give_item").mkdir(parents=True, exist_ok=True)
 
     pack_mcmeta = {"pack": {
-        "pack_format": config.pack_format,
-        "description": config.pack_description
+        "description": config.pack_description,
+        "min_format": [config.pack_format, 0],
+        "max_format": [config.pack_format, 0]
     }}
     write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
 
@@ -36,7 +37,7 @@ def generate_dp(audio_files: dict, config: PackConfig):
                               }}
         write_json(jukebox_song_entry, jukebox_song_dir / f"{audio_files[disc]["id_string"]}.json")
 
-        give_item_mcfunction: str = "execute at @s run summon item ~ ~ ~ {Item:{id:minecraft:" + config.disc_item_string + ", Count:1b, components:{custom_model_data:" + str(audio_files[disc]["custom_model_data"]) + ", jukebox_playable:{song:" + config.pack_id + ":" + audio_files[disc]["id_string"] + "}}}}"
+        give_item_mcfunction: str = 'execute at @s run summon item ~ ~ ~ {Item:{id:"minecraft:' + config.disc_item_string + '", Count:1b, components:{custom_model_data:' + str(audio_files[disc]["custom_model_data"]) + ', jukebox_playable:{song:"' + config.pack_id + ":" + audio_files[disc]["id_string"] + '"}}}}' # Yes, this line uses single quotes instead of double quotes. Remind me to fix that.
         give_item_mcfunction_path: Path = functions_dir / "give_item" / f"{audio_files[disc]['id_string']}.mcfunction"
 
         with open(give_item_mcfunction_path, "w") as f:
