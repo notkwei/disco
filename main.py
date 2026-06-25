@@ -3,15 +3,25 @@
 #TODO: Do error handling on copy/move operations
 
 from enum import Enum
-import json
 import shutil
 from pathlib import Path
-import questionary
-from rich.console import Console
 
+try:
+	import questionary
+except ModuleNotFoundError:
+	print("[ERROR] Questionary is required to run this program! Please install it with 'python -m pip install questionary' and try again.")
+
+try:
+	from rich.console import Console
+except ModuleNotFoundError:
+	print("[ERROR] Rich is required to run this program! Please install it with 'python -m pip install rich' and try again.")
+
+try:
+	import mutagen
+except ModuleNotFoundError:
+	print("[ERROR] Mutagen is required to run this program! Please install it with 'python -m pip install mutagen' and try again.")
 
 from generator.utils import PackConfig, format_string
-from rich import print, color
 
 console = Console()
 console.print("[white]" +
@@ -33,9 +43,9 @@ class ResourcePackFormat(Enum):
 	JAVA = 1
 	BEDROCK = 2
 
+DEFAULT_PACK_ID: str = "discodiscs"
+DEFAULT_PACK_DESCRIPTION: str = "Adds custom music discs"
 
-
-#Paths for various things
 DEFAULT_INPUT_PATH: Path = 				Path("input")
 DEFAULT_JAVA_RP_PATH = 		Path("resource_pack")
 DEFAULT_BEDROCK_RP_PATH = 	Path("resource_pack_bedrock")
@@ -45,11 +55,11 @@ DEFAULT_JAVA_RP_FORMAT: float = 88.0
 DEFAULT_JAVA_DP_FORMAT: float = 107.2
 
 DEFAULT_MUSIC_DISC_ITEM_STRING: str = "music_disc_wait"
+DEFAULT_JUKEBOX_COMPARATOR_OUTPUT: int = 12
+DEFAULT_AUDIO_RANGE: float = 64.0
 
 #Settings ()
 generate_bedrock_path: bool = False
-java_resource_pack_format: float = 88.0 # Microsoft, why. Just. WHY. IT IS A VERSION NUMBER. MAKE IT A NUMBER. NOT A FLOAT.
-datapack_format: float = 107.2	# *throws up*
 resource_pack_description : str = "Adds music discs to the game."
 pack_id : str = "discodiscs"
 
@@ -71,6 +81,12 @@ def list_audio_files(path: Path):
 
 			if item.is_file():
 				if item.suffix == ".ogg":
+
+					file = mutagen.File(item)
+					if file is None:
+						console.print("[ERROR] Could not read file", item, "! Cannot continue!", style="bold red")
+						exit(1)
+
 					icon = item.with_suffix(".png")
 					if icon.exists():
 						icon_path = icon
@@ -78,10 +94,17 @@ def list_audio_files(path: Path):
 						console.print("Could not find icon for ", item, ", using default icon.", style="gray50")
 						icon_path = DEFAULT_ICON_PATH
 
+					if file.tags.get("title") and file.tags.get("artist"):
+						track_description: str = file.tags.get("artist") + " - " + file.tags.get("title")
+					else:
+						track_description: str = item.stem
+
 					audio_file_list[item.stem] = 				{}
 					audio_file_list[item.stem]["audio_path"] = 	item
 					audio_file_list[item.stem]["icon_path"] = 	icon_path
 					audio_file_list[item.stem]["id_string"] =  	format_string(item.stem)
+					audio_file_list[item.stem]["length"] = file.info.length
+					audio_file_list[item.stem]["description"] = track_description
 					audio_file_list[item.stem]["custom_model_data"] = i
 					i += 1
 		
@@ -124,19 +147,25 @@ if use_advanced_settings:
 		pack_description = questionary.text("Enter pack description", "Adds custom music discs"),
 		pack_icon_path = questionary.path("Enter pack icon path"),
 		disc_item_string = questionary.text("Enter disc item name to use for custom model data"),
+		jukebox_comparator_output = questionary.text("Enter the jukebox redstone comparator output for the discs"),
+		audio_range = questionary.text("Enter the audio range for the discs")
 	).ask()
 else:
-	advanced_settings = {"pack_id": "discodiscs",
-						 "pack_description": "Adds custom music discs",
+	advanced_settings = {"pack_id": DEFAULT_PACK_ID,
+						 "pack_description": DEFAULT_PACK_DESCRIPTION,
 						 "pack_icon_path": DEFAULT_ICON_PATH,
-						 "disc_item_string": DEFAULT_MUSIC_DISC_ITEM_STRING}
+						 "disc_item_string": DEFAULT_MUSIC_DISC_ITEM_STRING,
+						 "jukebox_comparator_output": DEFAULT_JUKEBOX_COMPARATOR_OUTPUT,
+						 "audio_range": DEFAULT_AUDIO_RANGE}
 
 if "Java (Resource Pack + Datapack)" in pack_types:
 	if use_advanced_settings:
 		rp_format_id = questionary.text("Enter Java Resource Pack format number", str(DEFAULT_JAVA_RP_FORMAT)).ask()
 		dp_format_id = questionary.text("Enter Datapack format number", str(DEFAULT_JAVA_DP_FORMAT)).ask()
+	else:
+		rp_format_id = DEFAULT_JAVA_RP_FORMAT
+		dp_format_id = DEFAULT_JAVA_DP_FORMAT
 
-		pack_id = format_string(advanced_settings["pack_id"]) or pack_id
 
 	console.rule("[bold green]Java Settings[/bold green]")
 
@@ -150,10 +179,13 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 	if dp_output_path.exists() and ask_to_clear_path(dp_output_path):
 		shutil.rmtree(dp_output_path)
 
+	pack_id = format_string(advanced_settings["pack_id"]) or DEFAULT_PACK_ID
 	resource_pack_description = str(advanced_settings["pack_description"])
 	music_disc_item_string = advanced_settings["disc_item_string"]
-	java_resource_pack_format = float(advanced_settings["rp_format_id"])
-	datapack_format = float(advanced_settings["dp_format_id"])
+	java_resource_pack_format = float(rp_format_id)
+	datapack_format = float(dp_format_id)
+	jukebox_comparator_output = int(advanced_settings["jukebox_comparator_output"])
+	audio_range = float(advanced_settings["audio_range"])
 
 	pack_icon = Path(advanced_settings["pack_icon_path"])
 	if not pack_icon.exists():
@@ -162,18 +194,25 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 
 	with console.status("Building selected packs...", spinner="dots"):
 
-		rp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH, pack_id=pack_id,
+		rp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH,
+											pack_id=pack_id,
 											pack_description=resource_pack_description,
 											output_path=Path(rp_output_path) or DEFAULT_JAVA_RP_PATH,
-											disc_item_string=music_disc_item_string)
+											disc_item_string=music_disc_item_string,
+										   	jukebox_comparator_output=jukebox_comparator_output,
+										   	pack_icon=pack_icon,
+										   pack_format=java_resource_pack_format,
+										   audio_range=audio_range)
 
 		dp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH,
 										   pack_id=pack_id,
 										   pack_description=resource_pack_description,
 										   output_path=Path(dp_output_path) or DEFAULT_JAVA_RP_PATH,
 										   disc_item_string=music_disc_item_string,
+										   pack_icon=DEFAULT_ICON_PATH,
+										   jukebox_comparator_output=jukebox_comparator_output,
 										   pack_format=datapack_format,
-										   pack_icon=DEFAULT_ICON_PATH)
+										   audio_range=audio_range)
 
 		from generator.javarp.v88_0 import generate_rp
 		from generator.javadp.v107_1 import generate_dp

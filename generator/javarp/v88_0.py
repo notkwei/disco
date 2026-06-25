@@ -8,7 +8,7 @@ console = Console()
 PACK_FORMAT = 88.0
 
 def generate_rp(audio_files: dict, config: PackConfig): # meta holds pack metadata, like config.pack_id and the output path.
-	move_audio(audio_files, config, Path(f"assets/{config.output_path}/sounds/records"), Path(f"assets/{config.output_path}/sounds/records")) # Also creates audio-related resource pack directories. Might move that elsewhere later.
+	move_audio(audio_files, config, Path(f"{config.output_path}/assets/{config.pack_id}/sounds/records"), Path(f"{config.output_path}/assets/{config.pack_id}/textures/item")) # Also creates audio-related resource pack directories. Might move that elsewhere later.
 
 	pack_mcmeta = {"pack": {"pack_format": PACK_FORMAT,
 							"description": config.pack_description}}  # Generate pack.mcmeta
