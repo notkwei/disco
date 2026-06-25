@@ -3,6 +3,10 @@ from pathlib import Path
 from dataclasses import dataclass
 import shutil
 import re
+from rich.console import Console
+
+
+console = Console()
 
 
 STRING_FORMATTER_REPLACEMENTS = {
@@ -38,7 +42,7 @@ def format_string(string: str):
 
 def move_audio(files: dict, config: PackConfig, audio_output_path: Path, icon_output_path: Path):
 	if config.output_path.exists():
-		print(f"Resource pack output path ({str(config.output_path)}) exists! Cannot continue.")
+		console.print(f"Resource pack output path ({str(config.output_path)}) exists! Cannot continue.")
 
 
 
@@ -52,12 +56,12 @@ def move_audio(files: dict, config: PackConfig, audio_output_path: Path, icon_ou
 		audio_path = files[i]["audio_path"]
 		icon_path = files[i]["icon_path"]
 
-		print("[*] Moving", audio_path.name + "...")
-		shutil.move(Path(audio_path), records_dir / f"{format_string(audio_path.stem)}.ogg")
+		console.print("[*] Copying", audio_path.name + "...")
+		shutil.copy(Path(audio_path), records_dir / f"{format_string(audio_path.stem)}.ogg")
 		if icon_path == config.default_icon:
 			shutil.copy(Path(config.default_icon), icons_dir / f"{format_string(icon_path.stem)}.png")
 		else:
-			shutil.move(Path(icon_path), icons_dir / f"{format_string(icon_path.stem)}.png")
+			shutil.copy(Path(icon_path), icons_dir / f"{format_string(icon_path.stem)}.png")
 
 def write_json(dictionary: dict, file_path: Path):
 	try:

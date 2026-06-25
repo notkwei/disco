@@ -9,12 +9,6 @@ PACK_FORMAT: float = 107.1
 
 
 def generate_dp(audio_files: dict, config: PackConfig):
-    pack_mcmeta = {"pack": {
-        "pack_format": config.pack_format,
-        "description": config.pack_description
-    }}
-    write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
-
     jukebox_song_dir = config.output_path / "data" / config.pack_id / "jukebox_song"
     jukebox_song_dir.mkdir(parents=True, exist_ok=True)
 
@@ -22,6 +16,12 @@ def generate_dp(audio_files: dict, config: PackConfig):
     functions_dir.mkdir(parents=True, exist_ok=True)
 
     Path(functions_dir / "give_item").mkdir(parents=True, exist_ok=True)
+
+    pack_mcmeta = {"pack": {
+        "pack_format": config.pack_format,
+        "description": config.pack_description
+    }}
+    write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
 
     give_all_discs_mcfunction = []
 
