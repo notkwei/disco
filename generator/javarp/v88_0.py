@@ -8,14 +8,21 @@ console = Console()
 PACK_FORMAT = 88.0
 
 def generate_rp(audio_files: dict, config: PackConfig): # meta holds pack metadata, like config.pack_id and the output path.
-	move_audio(audio_files, config, Path(f"{config.output_path}/assets/{config.pack_id}/sounds/records"), Path(f"{config.output_path}/assets/{config.pack_id}/textures/item")) # Also creates audio-related resource pack directories. Might move that elsewhere later.
+	audio_output_dir = Path(f"{config.output_path}/assets/{config.pack_id}/sounds/records")
+	icon_output_dir = Path(f"{config.output_path}/assets/{config.pack_id}/textures/item")
 
-	pack_mcmeta = {"pack": {"pack_format": PACK_FORMAT,
-							"description": config.pack_description}}  # Generate pack.mcmeta
-	write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
+	audio_output_dir.mkdir(parents=True, exist_ok=True)
+	icon_output_dir.mkdir(parents=True, exist_ok=True)
+
 
 	Path(config.output_path / "assets" / config.pack_id / "models" / "item").mkdir(parents=True, exist_ok=True)
 	Path(config.output_path / "assets/minecraft/models/item").mkdir(parents=True, exist_ok=True)
+
+	pack_mcmeta = {"pack": {"pack_format": PACK_FORMAT,
+	                        "description": config.pack_description}}  # Generate pack.mcmeta
+	write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
+
+	move_audio(audio_files, config, audio_output_dir, icon_output_dir)
 
 	sounds_json = {}
 	model_data_mappings = {"parent": "item/generated",

@@ -2,7 +2,7 @@ from pathlib import Path
 
 from generator.utils import PackConfig, write_json
 from rich.console import Console
-import pathlib
+
 console = Console()
 
 PACK_FORMAT: float = 107.1
@@ -26,17 +26,18 @@ def generate_dp(audio_files: dict, config: PackConfig):
     give_all_discs_mcfunction = []
 
     for disc in audio_files: # Main disc write loop
-        jukebox_song_entry = {"comparator_output": disc["comparator_output"],
-                              "description": disc["description"],
-                              "length_in_seconds": disc["length"],
+        console.print("[DP] Processing disc", audio_files[disc]["id_string"], style="grey50")
+        jukebox_song_entry = {"comparator_output": config.jukebox_comparator_output,
+                              "description": audio_files[disc]["description"],
+                              "length_in_seconds": audio_files[disc]["length"],
                               "sound_event": {
-                                  "sound_id": config.pack_id + ":music_disc." + disc["id_string"],
+                                  "sound_id": config.pack_id + ":music_disc." + audio_files[disc]["id_string"],
                                   "range": config.audio_range
                               }}
-        write_json(jukebox_song_entry, jukebox_song_dir / f"{disc["id_string"]}.json")
+        write_json(jukebox_song_entry, jukebox_song_dir / f"{audio_files[disc]["id_string"]}.json")
 
-        give_item_mcfunction: str = "execute at @s run summon item ~ ~ ~ {Item:{id:minecraft:" + config.disc_item_string + ", Count:1b, components:{custom_model_data:" + disc["custom_model_data"] + ", jukebox_playable:{song:" + config.pack_id + ":" + disc["id_string"] + "}}}}"
-        give_item_mcfunction_path: Path = functions_dir / "give_item" / f"{disc['id_string']}.mcfunction"
+        give_item_mcfunction: str = "execute at @s run summon item ~ ~ ~ {Item:{id:minecraft:" + config.disc_item_string + ", Count:1b, components:{custom_model_data:" + str(audio_files[disc]["custom_model_data"]) + ", jukebox_playable:{song:" + config.pack_id + ":" + audio_files[disc]["id_string"] + "}}}}"
+        give_item_mcfunction_path: Path = functions_dir / "give_item" / f"{audio_files[disc]['id_string']}.mcfunction"
 
         with open(give_item_mcfunction_path, "w") as f:
             f.write(give_item_mcfunction)

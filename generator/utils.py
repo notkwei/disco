@@ -41,27 +41,16 @@ def format_string(string: str):
 	return re.sub(r'[^a-zA-Z]', '', str(string).translate(str.maketrans(STRING_FORMATTER_REPLACEMENTS))).lower()
 
 def move_audio(files: dict, config: PackConfig, audio_output_path: Path, icon_output_path: Path):
-	if config.output_path.exists():
-		console.print(f"Resource pack output path ({str(config.output_path)}) exists! Cannot continue.")
-
-
-
-	records_dir = config.output_path / audio_output_path
-	icons_dir = config.output_path / icon_output_path
-
-	records_dir.mkdir(parents=True, exist_ok=True)
-	icons_dir.mkdir(parents=True, exist_ok=True)
-
 	for i in files:
 		audio_path = files[i]["audio_path"]
 		icon_path = files[i]["icon_path"]
 
 		console.print("[*] Copying", audio_path.name + "...")
-		shutil.copy(Path(audio_path), records_dir / f"{format_string(audio_path.stem)}.ogg")
+		shutil.copy(Path(audio_path), audio_output_path / f"{format_string(audio_path.stem)}.ogg")
 		if icon_path == config.default_icon:
-			shutil.copy(Path(config.default_icon), icons_dir / f"{format_string(icon_path.stem)}.png")
+			shutil.copy(Path(config.default_icon), icon_output_path / f"{format_string(icon_path.stem)}.png")
 		else:
-			shutil.copy(Path(icon_path), icons_dir / f"{format_string(icon_path.stem)}.png")
+			shutil.copy(Path(icon_path), icon_output_path / f"{format_string(icon_path.stem)}.png")
 
 def write_json(dictionary: dict, file_path: Path):
 	try:
