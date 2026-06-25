@@ -48,7 +48,7 @@ def move_audio(files: dict, config: PackConfig, audio_output_path: Path, icon_ou
 		console.print("[*] Copying", audio_path.name + "...")
 		shutil.copy(Path(audio_path), audio_output_path / f"{format_string(audio_path.stem)}.ogg")
 		if icon_path == config.default_icon:
-			shutil.copy(Path(config.default_icon), icon_output_path / f"{format_string(icon_path.stem)}.png")
+			shutil.copy(Path(config.default_icon), icon_output_path / f"{format_string(audio_path.stem)}.png")
 		else:
 			shutil.copy(Path(icon_path), icon_output_path / f"{format_string(icon_path.stem)}.png")
 

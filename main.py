@@ -7,16 +7,19 @@ try:
 	import questionary
 except ModuleNotFoundError:
 	print("[ERROR] Questionary is required to run this program! Please install it with 'python -m pip install questionary' and try again.")
+	exit(1)
 
 try:
 	from rich.console import Console
 except ModuleNotFoundError:
 	print("[ERROR] Rich is required to run this program! Please install it with 'python -m pip install rich' and try again.")
+	exit(1)
 
 try:
 	import mutagen
 except ModuleNotFoundError:
 	print("[ERROR] Mutagen is required to run this program! Please install it with 'python -m pip install mutagen' and try again.")
+	exit(1)
 
 from generator.utils import PackConfig, format_string
 
@@ -211,8 +214,8 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 										   pack_format=datapack_format,
 										   audio_range=audio_range)
 
-		from generator.javarp.v34 import generate_rp
-		from generator.javadp.v57 import generate_dp
+		from generator.javarp.v88_0 import generate_rp
+		from generator.javadp.v107_1 import generate_dp
 
 		generate_rp(audio_files, rp_config)
 		generate_dp(audio_files, dp_config)

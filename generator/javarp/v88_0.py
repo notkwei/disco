@@ -26,7 +26,8 @@ def generate_rp(audio_files: dict, config: PackConfig): # meta holds pack metada
 		versions = [pack_format, 0]
 
 	pack_mcmeta = {"pack": {"description": config.pack_description,
-							"min_format": [int(versions[0]), int(versions[1])]}}  # Generate pack.mcmeta
+							"min_format": [int(versions[0]), int(versions[1])],
+							"max_format": [int(versions[0]), int(versions[1])]}}  # Generate pack.mcmeta
 	write_json(pack_mcmeta, config.output_path / "pack.mcmeta")
 
 	move_audio(audio_files, config, audio_output_dir, icon_output_dir)
