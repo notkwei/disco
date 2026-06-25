@@ -211,8 +211,8 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 										   pack_format=datapack_format,
 										   audio_range=audio_range)
 
-		from generator.javarp.v88_0 import generate_rp
-		from generator.javadp.v107_1 import generate_dp
+		from generator.javarp.v34 import generate_rp
+		from generator.javadp.v57 import generate_dp
 
 		generate_rp(audio_files, rp_config)
 		generate_dp(audio_files, dp_config)
