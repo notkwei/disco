@@ -44,6 +44,7 @@ class ResourcePackFormat(Enum):
 	BEDROCK = 2
 
 DEFAULT_PACK_ID: str = "discodiscs"
+DEFAULT_PACK_NAME: str = "Custom Music Disc Pack - Powered by Disco"
 DEFAULT_PACK_DESCRIPTION: str = "Adds custom music discs"
 
 DEFAULT_INPUT_PATH: Path = 				Path("input")
@@ -144,6 +145,7 @@ if use_advanced_settings:
 
 	advanced_settings = questionary.form(
 		pack_id = questionary.text("Enter pack namespace string (lowercase letters only)", "discodiscs"),
+		pack_name = questionary.text("Enter pack name"),
 		pack_description = questionary.text("Enter pack description", "Adds custom music discs"),
 		pack_icon_path = questionary.path("Enter pack icon path"),
 		disc_item_string = questionary.text("Enter disc item name to use for custom model data"),
@@ -153,6 +155,7 @@ if use_advanced_settings:
 else:
 	advanced_settings = {"pack_id": DEFAULT_PACK_ID,
 						 "pack_description": DEFAULT_PACK_DESCRIPTION,
+						 "pack_name": DEFAULT_PACK_NAME,
 						 "pack_icon_path": DEFAULT_ICON_PATH,
 						 "disc_item_string": DEFAULT_MUSIC_DISC_ITEM_STRING,
 						 "jukebox_comparator_output": DEFAULT_JUKEBOX_COMPARATOR_OUTPUT,
@@ -180,6 +183,7 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 		shutil.rmtree(dp_output_path)
 
 	pack_id = format_string(advanced_settings["pack_id"]) or DEFAULT_PACK_ID
+	pack_name = str(advanced_settings["pack_name"])
 	resource_pack_description = str(advanced_settings["pack_description"])
 	music_disc_item_string = advanced_settings["disc_item_string"]
 	java_resource_pack_format = float(rp_format_id)
@@ -192,7 +196,7 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 		console.print("Cannot find custom icon path, using default icon.", style="bold yellow")
 		pack_icon = DEFAULT_PACK_ICON_PATH
 
-	with console.status("Building selected packs...", spinner="dots"):
+	with console.status("Building Java packs...", spinner="dots"):
 
 		rp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH,
 											pack_id=pack_id,
@@ -202,7 +206,8 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 										   	jukebox_comparator_output=jukebox_comparator_output,
 										   	pack_icon=pack_icon,
 										   pack_format=java_resource_pack_format,
-										   audio_range=audio_range)
+										   audio_range=audio_range,
+										   pack_name=pack_name)
 
 		dp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH,
 										   pack_id=pack_id,
@@ -212,13 +217,48 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 										   pack_icon=DEFAULT_ICON_PATH,
 										   jukebox_comparator_output=jukebox_comparator_output,
 										   pack_format=datapack_format,
-										   audio_range=audio_range)
+										   audio_range=audio_range,
+										   pack_name=pack_name)
 
 		from generator.javarp.v88_0 import generate_rp
 		from generator.javadp.v107_1 import generate_dp
 
 		generate_rp(audio_files, rp_config)
 		generate_dp(audio_files, dp_config)
+	console.print("*** Java generation done!", style="green")
 
-if "Bedrock (Resource Pack + Datapack)" in pack_types:
-	rp_output_path: Path = Path(questionary.text("Enter Bedrock Resource Pack Output Directory", "resource_pack").ask())
+if "Bedrock (Resource Pack Only, Requires Geyser + Java Datapack)" in pack_types:
+	console.rule("[bold green] Bedrock Settings [/bold green]")
+	bedrock_rp_output_path = Path(questionary.text("Enter Bedrock Resource Pack output directory", str(DEFAULT_BEDROCK_RP_PATH)).ask())
+
+	if bedrock_rp_output_path.exists() and ask_to_clear_path(bedrock_rp_output_path):
+		shutil.rmtree(bedrock_rp_output_path)
+
+	bedrock_rp_output_path.mkdir(parents=True, exist_ok=True)
+
+
+	pack_id = format_string(advanced_settings["pack_id"]) or DEFAULT_PACK_ID
+	pack_name = str(advanced_settings["pack_name"])
+	resource_pack_description = str(advanced_settings["pack_description"])
+	music_disc_item_string = advanced_settings["disc_item_string"]
+	pack_icon = Path(advanced_settings["pack_icon_path"]) or DEFAULT_PACK_ICON_PATH
+	jukebox_comparator_output = int(advanced_settings["jukebox_comparator_output"])
+	audio_range = float(advanced_settings["audio_range"])
+
+	with console.status("Building Bedrock packs...", spinner="dots"):
+		rp_config: PackConfig = PackConfig(default_icon=DEFAULT_ICON_PATH,
+										   pack_id=pack_id,
+										   pack_description=resource_pack_description,
+										   output_path=bedrock_rp_output_path or DEFAULT_BEDROCK_RP_PATH, # The actual pack is written to the "pack" subdir so that the Geyser mappings aren't included.
+										   disc_item_string=music_disc_item_string,
+										   jukebox_comparator_output=jukebox_comparator_output,
+										   pack_icon=pack_icon,
+										   pack_format=0.0,
+										   audio_range=audio_range,
+										   pack_name=pack_name)
+
+		from generator.bedrockrp.geyser_bedrock import generate_bedrock_rp
+
+		generate_bedrock_rp(audio_files, rp_config)
+	console.print("*** Bedrock generation done!", style="green")
+	console.print(f"NOTE: Bedrock packs do not currently work by themselves! A Geyser-enabled Java Edition server is required. Don't forget to put {bedrock_rp_output_path / "geyser_custom_discs.json"} into Geyser's item mapping folder!", style="yellow")

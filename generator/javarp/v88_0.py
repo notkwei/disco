@@ -48,7 +48,7 @@ def generate_rp(audio_files: dict, config: PackConfig): # meta holds pack metada
 	for disc in audio_files:
 		disc_id = audio_files[disc]["id_string"]
 		disc_custom_model_id = int(audio_files[disc]["custom_model_data"])
-		console.print("[RP] Processing disc", disc_id, style="grey50")
+		console.print("[JAVA RP] Processing disc", disc_id, style="grey50")
 
 		sounds_json["music_disc." + disc_id] = {"sounds": [{"name": config.pack_id + ":records/" + disc_id,
 															"stream": True}]}  # formats sounds.json as music_disc.id_string = {"sounds"...}

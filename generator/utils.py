@@ -31,6 +31,7 @@ class PackConfig:
 	pack_format: float
 
 	pack_id: str
+	pack_name: str
 	pack_description: str
 	output_path: Path
 	disc_item_string: str

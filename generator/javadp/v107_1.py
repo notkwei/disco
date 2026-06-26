@@ -33,7 +33,7 @@ def generate_dp(audio_files: dict, config: PackConfig):
     give_all_discs_mcfunction = []
 
     for disc in audio_files: # Main disc write loop
-        console.print("[DP] Processing disc", audio_files[disc]["id_string"], style="grey50")
+        console.print("[JAVA DP] Processing disc", audio_files[disc]["id_string"], style="grey50")
         jukebox_song_entry = {"comparator_output": config.jukebox_comparator_output,
                               "description": {
                                   "translate": f"item.{config.pack_id}.music_disc_{audio_files[disc]['id_string']}",
