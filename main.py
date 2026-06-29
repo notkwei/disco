@@ -145,12 +145,12 @@ if use_advanced_settings:
 
 	advanced_settings = questionary.form(
 		pack_id = questionary.text("Enter pack namespace string (lowercase letters only)", "discodiscs"),
-		pack_name = questionary.text("Enter pack name"),
+		pack_name = questionary.text("Enter pack name", DEFAULT_PACK_NAME),
 		pack_description = questionary.text("Enter pack description", "Adds custom music discs"),
-		pack_icon_path = questionary.path("Enter pack icon path"),
-		disc_item_string = questionary.text("Enter disc item name to use for custom model data"),
-		jukebox_comparator_output = questionary.text("Enter the jukebox redstone comparator output for the discs"),
-		audio_range = questionary.text("Enter the audio range for the discs")
+		pack_icon_path = questionary.path("Enter pack icon path", str(DEFAULT_PACK_ICON_PATH)),
+		disc_item_string = questionary.text("Enter disc item name to use for custom model data", DEFAULT_MUSIC_DISC_ITEM_STRING),
+		jukebox_comparator_output = questionary.text("Enter the jukebox redstone comparator output for the discs", str(DEFAULT_JUKEBOX_COMPARATOR_OUTPUT)),
+		audio_range = questionary.text("Enter the audio range for the discs", str(DEFAULT_AUDIO_RANGE))
 	).ask()
 else:
 	advanced_settings = {"pack_id": DEFAULT_PACK_ID,
@@ -193,7 +193,7 @@ if "Java (Resource Pack + Datapack)" in pack_types:
 
 	pack_icon = Path(advanced_settings["pack_icon_path"])
 	if not pack_icon.exists():
-		console.print("Cannot find custom icon path, using default icon.", style="bold yellow")
+		console.print("[!] Could not find custom pack icon path, using default icon.", style="bold yellow")
 		pack_icon = DEFAULT_PACK_ICON_PATH
 
 	with console.status("Building Java packs...", spinner="dots"):
@@ -242,7 +242,7 @@ if "Bedrock (Resource Pack Only, Requires Geyser + Java Datapack)" in pack_types
 	resource_pack_description = str(advanced_settings["pack_description"])
 	music_disc_item_string = advanced_settings["disc_item_string"]
 	pack_icon = Path(advanced_settings["pack_icon_path"]) or DEFAULT_PACK_ICON_PATH
-	jukebox_comparator_output = int(advanced_settings["jukebox_comparator_output"])
+	jukebox_comparator_output = int(advanced_settings["jukebox_comparator_output"]) or DEFAULT_JUKEBOX_COMPARATOR_OUTPUT
 	audio_range = float(advanced_settings["audio_range"])
 
 	with console.status("Building Bedrock packs...", spinner="dots"):
