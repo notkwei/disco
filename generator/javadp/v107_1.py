@@ -44,7 +44,7 @@ def generate_dp(audio_files: dict, config: PackConfig):
                                   "sound_id": config.pack_id + ":music_disc." + audio_files[disc]["id_string"],
                                   "range": config.audio_range
                               }}
-        write_json(jukebox_song_entry, jukebox_song_dir / f"{audio_files[disc]["id_string"]}.json")
+        write_json(jukebox_song_entry, jukebox_song_dir / f"{audio_files[disc]['id_string']}.json")
 
         # execute at @s run give @s music_disc_wait[minecraft:jukebox_playable="discodiscs:wagewarfourxfour",minecraft:custom_model_data={strings:["music_disc_wagewarfourxfour"]}]
         give_item_mcfunction: str = f'execute at @s run give @s {config.disc_item_string}[minecraft:jukebox_playable="{config.pack_id}:{audio_files[disc]["id_string"]}",minecraft:custom_model_data='+'{strings:["music_disc_'+audio_files[disc]["id_string"]+'"]}]' # Yes, this line uses single quotes instead of double quotes.
@@ -57,6 +57,3 @@ def generate_dp(audio_files: dict, config: PackConfig):
 
     with open(functions_dir / "give_all.mcfunction", "w") as f:
         f.write("\n".join(give_all_discs_mcfunction))
-
-
-
