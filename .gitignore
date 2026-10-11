@@ -1,7 +1,10 @@
 .vscode
+.venv
+.idea
 input/*
 *.code-
-resource_pack
+resource_pack*
 datapack
-bedrock_resource_pack
 /input_template/
+*.pyc
+*__pycache__*
